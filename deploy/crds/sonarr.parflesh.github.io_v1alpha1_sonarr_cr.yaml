@@ -1,0 +1,7 @@
+apiVersion: sonarr.parflesh.github.io/v1alpha1
+kind: Sonarr
+metadata:
+  name: example-sonarr
+spec:
+  # Add fields here
+  size: 3
