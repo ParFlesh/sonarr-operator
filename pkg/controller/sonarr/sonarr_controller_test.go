@@ -41,7 +41,7 @@ func TestSonarrController(t *testing.T) {
 	s.AddKnownTypes(sonarrv1alpha1.SchemeGroupVersion, cr)
 
 	// Create a fake client to mock API calls.
-	cl := fake.NewFakeClient(objs...)
+	cl := fake.NewFakeClientWithScheme(s, objs...)
 
 	registryClient := &registry_client.MockRegistryClient{}
 	// Create a ReconcileSonarr object with the scheme and fake client.
