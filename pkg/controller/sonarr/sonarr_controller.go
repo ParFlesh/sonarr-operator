@@ -2,12 +2,19 @@ package sonarr
 
 import (
 	"context"
-
+	"fmt"
+	"github.com/parflesh/sonarr-operator/defaults"
 	sonarrv1alpha1 "github.com/parflesh/sonarr-operator/pkg/apis/sonarr/v1alpha1"
+	"github.com/parflesh/sonarr-operator/pkg/registry_client"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -25,7 +32,11 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileSonarr{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	return &ReconcileSonarr{
+		client:                 mgr.GetClient(),
+		scheme:                 mgr.GetScheme(),
+		registryClientProvider: &registry_client.RegistryClientProvider{},
+	}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -42,6 +53,22 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	err = c.Watch(&source.Kind{Type: &appsv1.Deployment{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &sonarrv1alpha1.Sonarr{},
+	})
+	if err != nil {
+		return err
+	}
+
+	err = c.Watch(&source.Kind{Type: &corev1.Service{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &sonarrv1alpha1.Sonarr{},
+	})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -52,8 +79,9 @@ var _ reconcile.Reconciler = &ReconcileSonarr{}
 type ReconcileSonarr struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client client.Client
-	scheme *runtime.Scheme
+	client                 client.Client
+	scheme                 *runtime.Scheme
+	registryClientProvider registry_client.RegistryClientProviderInterface
 }
 
 func (r *ReconcileSonarr) Reconcile(request reconcile.Request) (reconcile.Result, error) {
@@ -72,5 +100,205 @@ func (r *ReconcileSonarr) Reconcile(request reconcile.Request) (reconcile.Result
 		return reconcile.Result{}, err
 	}
 
+	newStatus := instance.Status
+
+	err = r.reconcileSpec(instance)
+	if err != nil {
+		err := r.client.Update(context.TODO(), instance)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{Requeue: true}, nil
+	}
+
+	repo, image, tag := registry_client.SplitImageName(instance.Spec.Image)
+	registryClient, err := r.registryClientProvider.New(repo, "", "")
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	manifest, err := registryClient.ManifestV2(image, tag)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	newStatus.Image = fmt.Sprintf("%s/%s@sha256:%s", repo, image, manifest.Config.Digest)
+	if newStatus.Image != instance.Status.Image {
+		instance.Status.Image = newStatus.Image
+		instance.Status.Name = image
+		instance.Status.Tag = tag
+		instance.Status.Repo = repo
+		r.client.Status().Update(context.TODO(), instance)
+		return reconcile.Result{Requeue: true}, nil
+	}
+
+	newDep, err := r.newDeployment(instance)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	foundDep := &appsv1.Deployment{}
+	err = r.client.Get(context.TODO(), request.NamespacedName, foundDep)
+	if err != nil && errors.IsNotFound(err) {
+		err := r.client.Create(context.TODO(), newDep)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{Requeue: true}, nil
+	} else if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	newSvc, err := r.newService(instance)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	foundSvc := &corev1.Service{}
+	err = r.client.Get(context.TODO(), request.NamespacedName, foundSvc)
+	if err != nil && errors.IsNotFound(err) {
+		err := r.client.Create(context.TODO(), newSvc)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		return reconcile.Result{Requeue: true}, nil
+	} else if err != nil {
+		return reconcile.Result{}, err
+	}
+
 	return reconcile.Result{}, nil
+}
+
+func (r *ReconcileSonarr) reconcileSpec(cr *sonarrv1alpha1.Sonarr) error {
+	if cr.Spec.Image == "" {
+		cr.Spec.Image = defaults.SonarrImage
+		return fmt.Errorf("image not set")
+	}
+	if cr.Spec.WatchFrequency == "" {
+		cr.Spec.WatchFrequency = defaults.OperatorRequeuTime
+		return fmt.Errorf("watch frequency not set")
+	}
+	return nil
+}
+
+func (r *ReconcileSonarr) newDeployment(cr *sonarrv1alpha1.Sonarr) (*appsv1.Deployment, error) {
+	labels := r.labelsForCR(cr)
+
+	dep := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cr.Name,
+			Namespace: cr.Namespace,
+			Labels:    labels,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &[]int32{1}[0],
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels,
+			},
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Volumes: []corev1.Volume{
+						{
+							Name:         "config",
+							VolumeSource: cr.Spec.ConfigVolume,
+						},
+					},
+					Containers: []corev1.Container{
+						{
+							Name:  "sonarr",
+							Image: cr.Status.Image,
+							Ports: []corev1.ContainerPort{
+								{
+									Name:          "http",
+									ContainerPort: 8989,
+									Protocol:      "tcp",
+								},
+							},
+							Resources: corev1.ResourceRequirements{},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "config",
+									MountPath: "/config",
+								},
+							},
+							LivenessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path:   "",
+										Port:   intstr.IntOrString{},
+										Scheme: corev1.URISchemeHTTP,
+									},
+								},
+							},
+							ReadinessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Path:   "",
+										Port:   intstr.IntOrString{},
+										Scheme: corev1.URISchemeHTTP,
+									},
+								},
+							},
+							ImagePullPolicy: corev1.PullIfNotPresent,
+						},
+					},
+					RestartPolicy: corev1.RestartPolicyAlways,
+					SecurityContext: &corev1.PodSecurityContext{
+						RunAsUser:  &cr.Spec.RunAsUser,
+						RunAsGroup: &cr.Spec.RunAsGroup,
+					},
+					ImagePullSecrets:  cr.Spec.ImagePullSecrets,
+					PriorityClassName: cr.Spec.PriorityClassName,
+				},
+			},
+			Strategy: appsv1.DeploymentStrategy{
+				Type: appsv1.RecreateDeploymentStrategyType,
+			},
+			RevisionHistoryLimit: &[]int32{5}[0],
+		},
+	}
+
+	err := controllerutil.SetControllerReference(cr, dep, r.scheme)
+	if err != nil {
+		return dep, err
+	}
+	return dep, nil
+}
+
+func (r *ReconcileSonarr) newService(cr *sonarrv1alpha1.Sonarr) (*corev1.Service, error) {
+	labels := r.labelsForCR(cr)
+
+	dep := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cr.Name,
+			Namespace: cr.Namespace,
+			Labels:    labels,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Name:     "http",
+					Protocol: corev1.ProtocolTCP,
+					Port:     8989,
+					TargetPort: intstr.IntOrString{
+						Type:   intstr.Int,
+						IntVal: 8989,
+						StrVal: "",
+					},
+				},
+			},
+			Selector: labels,
+		},
+	}
+
+	err := controllerutil.SetControllerReference(cr, dep, r.scheme)
+	if err != nil {
+		return dep, err
+	}
+
+	return dep, nil
+}
+
+func (r *ReconcileSonarr) labelsForCR(cr *sonarrv1alpha1.Sonarr) map[string]string {
+	return map[string]string{
+		"sonarr": cr.Name,
+	}
 }
