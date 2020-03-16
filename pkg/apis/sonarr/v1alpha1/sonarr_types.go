@@ -75,7 +75,7 @@ type SonarrStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=sonarrs,scope=Namespaced
 // +operator-sdk:gen-csv:customresourcedefinitions.displayName="Sonarr"
-// +operator-sdk:gen-csv:customresourcedefinitions.resources="Deployment,v1,"sonarr-operator""
+// +operator-sdk:gen-csv:customresourcedefinitions.resources=`Deployment,v1,"sonarr-operator"`
 // +operator-sdk:gen-csv:customresourcedefinitions.resources=`Service,v1,"sonarr-operator"`
 type Sonarr struct {
 	metav1.TypeMeta   `json:",inline"`

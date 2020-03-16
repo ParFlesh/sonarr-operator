@@ -23,8 +23,46 @@ spec:
   customresourcedefinitions:
     owned:
     - description: Sonarr is the Schema for the sonarrs API
+      displayName: Sonarr
       kind: Sonarr
       name: sonarrs.sonarr.parflesh.github.io
+      resources:
+      - kind: Deployment
+        name: sonarr-operator
+        version: v1
+      - kind: Service
+        name: sonarr-operator
+        version: v1
+      specDescriptors:
+      - description: Additional Volumes to be mounted in Sonarr container
+        displayName: Additional Volumes
+        path: additionalVolumes
+      - description: Sonarr Config Volume mounted to /config
+        displayName: Config Volume
+        path: configVolume
+      - description: Stop automatic updates when hash for image tag changes
+        displayName: Disable Image Updates
+        path: disableUpdates
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: 'Container image capable of running Sonarr (Default: quay.io/parflesh/sonarr:latest)'
+        displayName: Container Image
+        path: image
+      - description: Image pull secret for private container images
+        displayName: Image Pull Secret
+        path: imagePullSecret
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:Secret
+      - description: Priority Class Name
+        displayName: Priority Class NAme
+        path: priorityClassName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: 'Time to wait between checking resource status (Default: 1m)'
+        displayName: Watch Frequency
+        path: watchFrequency
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
       version: v1alpha1
   description: Placeholder description
   displayName: Sonarr Operator
