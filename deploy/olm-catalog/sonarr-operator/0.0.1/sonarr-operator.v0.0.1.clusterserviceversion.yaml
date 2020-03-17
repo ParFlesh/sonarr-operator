@@ -10,13 +10,12 @@ metadata:
           "metadata": {
             "name": "example-sonarr"
           },
-          "spec": {
-            "size": 3
-          }
+          "spec": {}
         }
       ]
     capabilities: Basic Install
   name: sonarr-operator.v0.0.1
+  namespace: placeholder
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
@@ -53,15 +52,41 @@ spec:
         x-descriptors:
         - urn:alm:descriptor:io.kubernetes:Secret
       - description: Priority Class Name
-        displayName: Priority Class NAme
+        displayName: Priority Class Name
         path: priorityClassName
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Run as Group Id
+        displayName: GroupID
+        path: runAsGroup
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Run as User Id
+        displayName: User ID
+        path: runAsUser
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
       - description: 'Time to wait between checking resource status (Default: 1m)'
         displayName: Watch Frequency
         path: watchFrequency
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
+      statusDescriptors:
+      - description: Desired Image hash for container
+        displayName: Image
+        path: image
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Phase
+        displayName: Phase
+        path: phase
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.phase
+      - description: Reason
+        displayName: Reason
+        path: reason
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.phase:reason
       version: v1alpha1
   description: Placeholder description
   displayName: Sonarr Operator
@@ -94,7 +119,7 @@ spec:
                       fieldPath: metadata.name
                 - name: OPERATOR_NAME
                   value: sonarr-operator
-                image: REPLACE_IMAGE
+                image: quay.io/parflesh/sonarr-operator:0.0.1
                 imagePullPolicy: Always
                 name: sonarr-operator
                 resources: {}

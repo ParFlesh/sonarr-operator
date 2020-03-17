@@ -2383,7 +2383,7 @@ spec:
               description: Priority Class Name
               type: string
             runAsGroup:
-              description: Run as User Id
+              description: Run as Group Id
               format: int64
               type: integer
             runAsUser:
@@ -2394,9 +2394,6 @@ spec:
               description: 'Time to wait between checking resource status (Default:
                 1m)'
               type: string
-          required:
-          - runAsGroup
-          - runAsUser
           type: object
         status:
           description: SonarrStatus defines the observed state of Sonarr
@@ -2404,17 +2401,12 @@ spec:
             image:
               description: Desired Image hash for container
               type: string
-            name:
+            phase:
+              description: Phase
               type: string
-            repo:
+            reason:
+              description: Reason
               type: string
-            tag:
-              type: string
-          required:
-          - image
-          - name
-          - repo
-          - tag
           type: object
       type: object
   version: v1alpha1

@@ -15,8 +15,7 @@ spec:
       serviceAccountName: sonarr-operator
       containers:
         - name: sonarr-operator
-          # Replace this with the built image name
-          image: REPLACE_IMAGE
+          image: quay.io/parflesh/sonarr-operator:0.0.1
           command:
           - sonarr-operator
           imagePullPolicy: Always

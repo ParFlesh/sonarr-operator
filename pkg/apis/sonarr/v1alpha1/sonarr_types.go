@@ -11,62 +11,78 @@ type SonarrSpec struct {
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Config Volume"
 	// +optional
-	ConfigVolume corev1.VolumeSource `json:"configVolume"`
+	ConfigVolume corev1.VolumeSource `json:"configVolume,omitempty"`
 
 	// Container image capable of running Sonarr (Default: quay.io/parflesh/sonarr:latest)
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Container Image"
 	// +optional
-	Image string `json:"image"`
+	Image string `json:"image,omitempty"`
 
 	// Additional Volumes to be mounted in Sonarr container
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Additional Volumes"
 	// +optional
-	AdditionalVolumes []corev1.Volume `json:"additionalVolumes"`
+	AdditionalVolumes []corev1.Volume `json:"additionalVolumes,omitempty"`
 
 	// Stop automatic updates when hash for image tag changes
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Disable Image Updates"
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:booleanSwitch"
 	// +optional
-	DisableUpdates bool `json:"disableUpdates"`
+	DisableUpdates bool `json:"disableUpdates,omitempty"`
 
 	// Image pull secret for private container images
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Image Pull Secret"
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:io.kubernetes:Secret"
 	// +optional
-	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecret"`
+	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecret,omitempty"`
 
 	// Time to wait between checking resource status (Default: 1m)
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Watch Frequency"
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:text"
 	// +optional
-	WatchFrequency string `json:"watchFrequency"`
+	WatchFrequency string `json:"watchFrequency,omitempty"`
 
 	// Priority Class Name
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
-	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Priority Class NAme"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="Priority Class Name"
 	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:text"
 	// +optional
-	PriorityClassName string `json:"priorityClassName"`
+	PriorityClassName string `json:"priorityClassName,omitempty"`
 
 	// Run as User Id
-	RunAsUser int64 `json:"runAsUser"`
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="User ID"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:number"
+	// +optional
+	RunAsUser int64 `json:"runAsUser,omitempty"`
 
-	// Run as User Id
-	RunAsGroup int64 `json:"runAsGroup"`
+	// Run as Group Id
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.displayName="GroupID"
+	// +operator-sdk:gen-csv:customresourcedefinitions.specDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:number"
+	// +optional
+	RunAsGroup int64 `json:"runAsGroup,omitempty"`
 }
 
 // SonarrStatus defines the observed state of Sonarr
 type SonarrStatus struct {
 	// Desired Image hash for container
-	Image string `json:"image"`
-	Repo  string `json:"repo"`
-	Name  string `json:"name"`
-	Tag   string `json:"tag"`
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.displayName="Image"
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors.x-descriptors="urn:alm:descriptor:com.tectonic.ui:text"
+	Image string `json:"image,omitempty"`
+
+	// Phase
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
+	Phase string `json:"phase,omitempty"`
+
+	// Reason
+	// +operator-sdk:gen-csv:customresourcedefinitions.statusDescriptors=true
+	Reason string `json:"reason,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
