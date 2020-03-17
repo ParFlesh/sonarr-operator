@@ -187,6 +187,9 @@ func (r *ReconcileSonarr) newDeployment(cr *sonarrv1alpha1.Sonarr) (*appsv1.Depl
 				MatchLabels: labels,
 			},
 			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: labels,
+				},
 				Spec: corev1.PodSpec{
 					Volumes: []corev1.Volume{
 						{
@@ -202,7 +205,7 @@ func (r *ReconcileSonarr) newDeployment(cr *sonarrv1alpha1.Sonarr) (*appsv1.Depl
 								{
 									Name:          "http",
 									ContainerPort: 8989,
-									Protocol:      "tcp",
+									Protocol:      corev1.ProtocolTCP,
 								},
 							},
 							Resources: corev1.ResourceRequirements{},
