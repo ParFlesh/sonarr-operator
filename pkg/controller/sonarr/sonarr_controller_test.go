@@ -2,8 +2,6 @@ package sonarr
 
 import (
 	"context"
-	imagetypes "github.com/containers/image/v5/types"
-	"github.com/parflesh/sonarr-operator/pkg/image_inspect"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"testing"
@@ -46,12 +44,12 @@ func TestSonarrController(t *testing.T) {
 	r := &ReconcileSonarr{
 		client: cl,
 		scheme: s,
-		imageInspector: &image_inspect.MockImageInspector{
+		/*imageInspector: &image_inspect.MockImageInspector{
 			GetImageLabelsOutput: &imagetypes.ImageInspectInfo{
 				Tag: "test",
 			},
 			GetImageLabelsError: nil,
-		},
+		},*/
 	}
 
 	// Mock request to simulate Reconcile() being called on an event for a
@@ -99,7 +97,7 @@ func TestSonarrController(t *testing.T) {
 		t.Error("reconcile did not requeue")
 	}
 	err = r.client.Get(context.TODO(), req.NamespacedName, cr)
-	if cr.Status.Image != "quay.io/parflesh/sonarr@sha256:abc123" {
+	if cr.Status.Image != cr.Spec.Image {
 		t.Error("status image mismatch")
 	}
 

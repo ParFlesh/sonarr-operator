@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/parflesh/sonarr-operator/defaults"
 	sonarrv1alpha1 "github.com/parflesh/sonarr-operator/pkg/apis/sonarr/v1alpha1"
-	"github.com/parflesh/sonarr-operator/pkg/image_inspect"
+	//"github.com/parflesh/sonarr-operator/pkg/image_inspect"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -33,9 +33,9 @@ func Add(mgr manager.Manager) error {
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &ReconcileSonarr{
-		client:         mgr.GetClient(),
-		scheme:         mgr.GetScheme(),
-		imageInspector: &image_inspect.ImageInspector{},
+		client: mgr.GetClient(),
+		scheme: mgr.GetScheme(),
+		//imageInspector: &image_inspect.ImageInspector{},
 	}
 }
 
@@ -79,9 +79,9 @@ var _ reconcile.Reconciler = &ReconcileSonarr{}
 type ReconcileSonarr struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client         client.Client
-	scheme         *runtime.Scheme
-	imageInspector image_inspect.ImageInspectorInterface
+	client client.Client
+	scheme *runtime.Scheme
+	//imageInspector image_inspect.ImageInspectorInterface
 }
 
 func (r *ReconcileSonarr) Reconcile(request reconcile.Request) (reconcile.Result, error) {
@@ -111,12 +111,12 @@ func (r *ReconcileSonarr) Reconcile(request reconcile.Request) (reconcile.Result
 		return reconcile.Result{Requeue: true}, nil
 	}
 
-	imageManifest, err := r.imageInspector.GetImageLabels(context.TODO(), instance.Spec.Image)
+	/*imageManifest, err := r.imageInspector.GetImageLabels(ctx, instance.Spec.Image)
 	if err != nil {
 		return reconcile.Result{}, err
-	}
+	}*/
 
-	newStatus.Image = imageManifest.Tag
+	newStatus.Image = instance.Spec.Image
 	if newStatus.Image != instance.Status.Image {
 		instance.Status.Image = newStatus.Image
 		if err := r.client.Status().Update(context.TODO(), instance); err != nil {

@@ -17,7 +17,6 @@ metadata:
       ]
     capabilities: Basic Install
   name: sonarr-operator.v0.0.1
-  namespace: placeholder
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
