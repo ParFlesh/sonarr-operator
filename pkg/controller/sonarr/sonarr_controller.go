@@ -215,8 +215,12 @@ func (r *ReconcileSonarr) newDeployment(cr *sonarrv1alpha1.Sonarr) (*appsv1.Depl
 							LivenessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
 									HTTPGet: &corev1.HTTPGetAction{
-										Path:   "",
-										Port:   intstr.IntOrString{},
+										Path: "",
+										Port: intstr.IntOrString{
+											Type:   intstr.Int,
+											IntVal: 8989,
+											StrVal: "",
+										},
 										Scheme: corev1.URISchemeHTTP,
 									},
 								},
@@ -224,8 +228,12 @@ func (r *ReconcileSonarr) newDeployment(cr *sonarrv1alpha1.Sonarr) (*appsv1.Depl
 							ReadinessProbe: &corev1.Probe{
 								Handler: corev1.Handler{
 									HTTPGet: &corev1.HTTPGetAction{
-										Path:   "",
-										Port:   intstr.IntOrString{},
+										Path: "",
+										Port: intstr.IntOrString{
+											Type:   intstr.Int,
+											IntVal: 8989,
+											StrVal: "",
+										},
 										Scheme: corev1.URISchemeHTTP,
 									},
 								},
