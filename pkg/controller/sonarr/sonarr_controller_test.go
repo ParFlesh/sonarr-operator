@@ -2,14 +2,13 @@ package sonarr
 
 import (
 	"context"
-	"github.com/docker/distribution"
-	"github.com/docker/distribution/manifest/schema2"
+	imagetypes "github.com/containers/image/v5/types"
+	"github.com/parflesh/sonarr-operator/pkg/image_inspect"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"testing"
 
 	sonarrv1alpha1 "github.com/parflesh/sonarr-operator/pkg/apis/sonarr/v1alpha1"
-	"github.com/parflesh/sonarr-operator/pkg/registry_client"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -43,12 +42,16 @@ func TestSonarrController(t *testing.T) {
 	// Create a fake client to mock API calls.
 	cl := fake.NewFakeClientWithScheme(s, objs...)
 
-	registryClient := &registry_client.MockRegistryClient{}
 	// Create a ReconcileSonarr object with the scheme and fake client.
 	r := &ReconcileSonarr{
-		client:                 cl,
-		scheme:                 s,
-		registryClientProvider: &registry_client.MockRegistryClientProvider{Client: registryClient},
+		client: cl,
+		scheme: s,
+		imageInspector: &image_inspect.MockImageInspector{
+			GetImageLabelsOutput: &imagetypes.ImageInspectInfo{
+				Tag: "test",
+			},
+			GetImageLabelsError: nil,
+		},
 	}
 
 	// Mock request to simulate Reconcile() being called on an event for a
@@ -87,13 +90,6 @@ func TestSonarrController(t *testing.T) {
 		t.Error("Watch Frequency not updated")
 	}
 
-	registryClient.ManifestV2Output = &schema2.DeserializedManifest{
-		Manifest: schema2.Manifest{
-			Config: distribution.Descriptor{
-				Digest: "abc123",
-			},
-		},
-	}
 	res, err = r.Reconcile(req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)

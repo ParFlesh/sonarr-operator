@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/parflesh/sonarr-operator/defaults"
 	sonarrv1alpha1 "github.com/parflesh/sonarr-operator/pkg/apis/sonarr/v1alpha1"
-	"github.com/parflesh/sonarr-operator/pkg/registry_client"
+	"github.com/parflesh/sonarr-operator/pkg/image_inspect"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -33,9 +33,9 @@ func Add(mgr manager.Manager) error {
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &ReconcileSonarr{
-		client:                 mgr.GetClient(),
-		scheme:                 mgr.GetScheme(),
-		registryClientProvider: &registry_client.RegistryClientProvider{},
+		client:         mgr.GetClient(),
+		scheme:         mgr.GetScheme(),
+		imageInspector: &image_inspect.ImageInspector{},
 	}
 }
 
@@ -79,9 +79,9 @@ var _ reconcile.Reconciler = &ReconcileSonarr{}
 type ReconcileSonarr struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client                 client.Client
-	scheme                 *runtime.Scheme
-	registryClientProvider registry_client.RegistryClientProviderInterface
+	client         client.Client
+	scheme         *runtime.Scheme
+	imageInspector image_inspect.ImageInspectorInterface
 }
 
 func (r *ReconcileSonarr) Reconcile(request reconcile.Request) (reconcile.Result, error) {
@@ -111,24 +111,17 @@ func (r *ReconcileSonarr) Reconcile(request reconcile.Request) (reconcile.Result
 		return reconcile.Result{Requeue: true}, nil
 	}
 
-	repo, image, tag := registry_client.SplitImageName(instance.Spec.Image)
-	registryClient, err := r.registryClientProvider.New(repo, "", "")
+	imageManifest, err := r.imageInspector.GetImageLabels(context.TODO(), instance.Spec.Image)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 
-	manifest, err := registryClient.ManifestV2(image, tag)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	newStatus.Image = fmt.Sprintf("%s/%s@sha256:%s", repo, image, manifest.Config.Digest)
+	newStatus.Image = imageManifest.Tag
 	if newStatus.Image != instance.Status.Image {
 		instance.Status.Image = newStatus.Image
-		instance.Status.Name = image
-		instance.Status.Tag = tag
-		instance.Status.Repo = repo
-		r.client.Status().Update(context.TODO(), instance)
+		if err := r.client.Status().Update(context.TODO(), instance); err != nil {
+			return reconcile.Result{}, err
+		}
 		return reconcile.Result{Requeue: true}, nil
 	}
 

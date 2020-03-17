@@ -3,6 +3,7 @@ module github.com/parflesh/sonarr-operator
 go 1.13
 
 require (
+	github.com/containers/image/v5 v5.2.1
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/heroku/docker-registry-client v0.0.0-20190909225348-afc9e1acc3d5
 	github.com/operator-framework/operator-sdk v0.15.2
