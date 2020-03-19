@@ -1,0 +1,161 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+labels:
+  template: operator-build-template
+metadata:
+  annotations:
+  name: operator-build
+objects:
+  - kind: ImageStream
+    apiVersion: image.openshift.io/v1
+    metadata:
+      name: ${BASE_NAME}
+      labels:
+        build: ${BASE_NAME}
+    spec:
+      tags:
+        - name: source
+          from:
+            kind: ${SOURCE_BUILD_IMAGE_SOURCE_KIND}
+            name: ${SOURCE_BUILD_IMAGE_SOURCE_NAME}
+          importPolicy:
+            scheduled: true
+          referencePolicy:
+            type: Local
+        - name: docker
+          from:
+            kind: ${DOCKER_BUILD_IMAGE_SOURCE_KIND}
+            name: ${DOCKER_BUILD_IMAGE_SOURCE_NAME}
+          importPolicy:
+            scheduled: true
+          referencePolicy:
+            type: Local
+  - kind: BuildConfig
+    apiVersion: build.openshift.io/v1
+    metadata:
+      name: ${BASE_NAME}-${ID}-source
+      labels:
+        build: ${BASE_NAME}
+    spec:
+      output:
+        to:
+          kind: ImageStreamTag
+          name: "${BASE_NAME}:${VERSION}-artifact"
+      resources: {}
+      successfulBuildsHistoryLimit: 5
+      failedBuildsHistoryLimit: 5
+      strategy:
+        type: Docker
+        dockerStrategy:
+          buildArgs:
+            - name: VERSION
+              value: ${VERSION}
+            - name: NAME
+              value: ${BASE_NAME}
+          from:
+            kind: ImageStreamTag
+            name: '${BASE_NAME}:source'
+      postCommit:
+        script: 'go test -json ./...'
+      source:
+        type: Git
+        git:
+          uri: ${GIT_SOURCE_URL}
+          ref: ${GIT_SOURCE_REF}
+        dockerfile: |-
+          FROM golang
+          ENV GOPATH=${GOPATH} \
+            GOROOT=${GOROOT}
+          ARG VERSION
+          ARG NAME
+          ADD . /tmp/src
+          WORKDIR /tmp/src
+          RUN go build -o /tmp/src/build/_output/bin/${BASE_NAME} -gcflags all=-trimpath=/tmp/src -asmflags all=-trimpath=/tmp/src ${PACKAGE_BASE}/cmd/manager && \
+              rm -Rf ~/go/*
+      triggers:
+        - type: ConfigChange
+      runPolicy: Serial
+  - kind: BuildConfig
+    apiVersion: build.openshift.io/v1
+    metadata:
+      name: ${BASE_NAME}-${ID}-final
+      labels:
+        build: ${BASE_NAME}
+    spec:
+      output:
+        to:
+          kind: ${BUILD_OUTPUT_KIND}
+          name: "${BUILD_OUTPUT_NAME}:${VERSION}"
+        pushSecret:
+          name: ${BUILD_OUTPUT_SECRET}
+      resources: {}
+      successfulBuildsHistoryLimit: 5
+      failedBuildsHistoryLimit: 5
+      strategy:
+        type: Docker
+        dockerStrategy:
+          dockerfilePath: build/Dockerfile
+          from:
+            kind: ImageStreamTag
+            name: '${BASE_NAME}:docker'
+      source:
+        type: Git
+        git:
+          uri: ${GIT_SOURCE_URL}
+          ref: ${GIT_SOURCE_REF}
+        images:
+          - from:
+              kind: ImageStreamTag
+              name: "${BASE_NAME}:${VERSION}-artifact"
+            paths:
+              - destinationDir: build/_output/bin/
+                sourcePath: /tmp/src/build/_output/bin/.
+      triggers:
+        - type: ConfigChange
+        - type: ImageChange
+          imageChangeParams:
+            from:
+              kind: ImageStreamTag
+              name: ${BASE_NAME}:${VERSION}-artifact
+      runPolicy: Serial
+parameters:
+  - name: SOURCE_BUILD_IMAGE_SOURCE_NAME
+    required: true
+    value: "quay.io/giantswarm/golang:1.14.0"
+  - name: SOURCE_BUILD_IMAGE_SOURCE_KIND
+    required: true
+    value: DockerImage
+  - name: DOCKER_BUILD_IMAGE_SOURCE_NAME
+    required: true
+    value: "registry.access.redhat.com/ubi8/ubi-minimal:latest"
+  - name: DOCKER_BUILD_IMAGE_SOURCE_KIND
+    required: true
+    value: DockerImage
+  - name: BUILD_OUTPUT_NAME
+    required: true
+    value: "quay.io/parflesh/sonarr-operator"
+  - name: BUILD_OUTPUT_KIND
+    required: true
+    value: DockerImage
+  - name: BUILD_OUTPUT_SECRET
+    required: true
+    value: image-push-secret
+  - name: GIT_SOURCE_URL
+    required: true
+    value: "https://github.com/ParFlesh/sonarr-operator.git"
+  - name: GIT_SOURCE_REF
+  - name: BASE_NAME
+    required: true
+    value: sonarr-operator
+  - name: ID
+    required: true
+    value: ""
+  - name: VERSION
+    required: true
+    value: ""
+  - name: PACKAGE_BASE
+    required: true
+  - name: GOPATH
+    value: "/go/src"
+  - name: GOROOT
+    value: "/usr/local/go"
