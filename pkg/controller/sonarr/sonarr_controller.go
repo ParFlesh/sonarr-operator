@@ -244,11 +244,8 @@ func (r *ReconcileSonarr) newDeployment(cr *sonarrv1alpha1.Sonarr) (*appsv1.Depl
 							ImagePullPolicy: corev1.PullIfNotPresent,
 						},
 					},
-					RestartPolicy: corev1.RestartPolicyAlways,
-					SecurityContext: &corev1.PodSecurityContext{
-						RunAsUser:  &cr.Spec.RunAsUser,
-						RunAsGroup: &cr.Spec.RunAsGroup,
-					},
+					RestartPolicy:     corev1.RestartPolicyAlways,
+					SecurityContext:   &corev1.PodSecurityContext{},
 					ImagePullSecrets:  cr.Spec.ImagePullSecrets,
 					PriorityClassName: cr.Spec.PriorityClassName,
 				},
@@ -258,6 +255,14 @@ func (r *ReconcileSonarr) newDeployment(cr *sonarrv1alpha1.Sonarr) (*appsv1.Depl
 			},
 			RevisionHistoryLimit: &[]int32{5}[0],
 		},
+	}
+
+	if cr.Spec.RunAsUser != int64(nil) {
+		dep.Spec.Template.Spec.Containers[0].SecurityContext.RunAsUser = &cr.Spec.RunAsUser
+	}
+
+	if cr.Spec.RunAsGroup != int64(nil) {
+		dep.Spec.Template.Spec.Containers[0].SecurityContext.RunAsUser = &cr.Spec.RunAsUser
 	}
 
 	err := controllerutil.SetControllerReference(cr, dep, r.scheme)
