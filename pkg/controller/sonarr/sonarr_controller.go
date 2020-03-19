@@ -257,11 +257,11 @@ func (r *ReconcileSonarr) newDeployment(cr *sonarrv1alpha1.Sonarr) (*appsv1.Depl
 		},
 	}
 
-	if cr.Spec.RunAsUser != int64(nil) {
+	if cr.Spec.RunAsUser != int64(0) {
 		dep.Spec.Template.Spec.Containers[0].SecurityContext.RunAsUser = &cr.Spec.RunAsUser
 	}
 
-	if cr.Spec.RunAsGroup != int64(nil) {
+	if cr.Spec.RunAsGroup != int64(0) {
 		dep.Spec.Template.Spec.Containers[0].SecurityContext.RunAsUser = &cr.Spec.RunAsUser
 	}
 
