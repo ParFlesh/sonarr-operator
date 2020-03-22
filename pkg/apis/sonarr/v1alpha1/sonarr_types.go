@@ -65,7 +65,8 @@ type SonarrSpec struct {
 	FSGroup int64 `json:"fsGroup,omitempty"`
 
 	// +listType=atomic
-	Volumes []SonarrSpecVolume `json:"volumes"`
+	// +optional
+	Volumes []SonarrSpecVolume `json:"volumes,omitempty"`
 }
 
 type SonarrSpecVolume struct {

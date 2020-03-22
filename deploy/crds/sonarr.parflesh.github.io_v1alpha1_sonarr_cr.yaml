@@ -2,4 +2,9 @@ apiVersion: sonarr.parflesh.github.io/v1alpha1
 kind: Sonarr
 metadata:
   name: example-sonarr
-spec: {}
+spec:
+  volumes:
+    - name: config
+      mountPath: /config
+      claim: example-sonarr
+  fsGroup: 1000

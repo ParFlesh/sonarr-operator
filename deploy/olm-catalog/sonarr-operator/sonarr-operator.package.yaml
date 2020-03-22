@@ -1,7 +1,7 @@
 channels:
-- currentCSV: sonarr-operator.v0.0.1
+- currentCSV: sonarr-operator.v0.0.2
   name: alpha
-- currentCSV: sonarr-operator.v0.0.1
+- currentCSV: sonarr-operator.v0.0.2
   name: stable
 defaultChannel: stable
 packageName: sonarr-operator

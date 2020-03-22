@@ -15,7 +15,7 @@ spec:
       serviceAccountName: sonarr-operator
       containers:
         - name: sonarr-operator
-          image: quay.io/parflesh/sonarr-operator:0.0.1
+          image: quay.io/parflesh/sonarr-operator:0.0.2
           command:
           - sonarr-operator
           imagePullPolicy: Always
