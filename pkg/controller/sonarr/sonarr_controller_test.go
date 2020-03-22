@@ -88,19 +88,6 @@ func TestSonarrController(t *testing.T) {
 		t.Error("Watch Frequency not updated")
 	}
 
-	res, err = r.Reconcile(req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-	// Check the result of reconciliation to make sure it has the desired state.
-	if !res.Requeue {
-		t.Error("reconcile did not requeue")
-	}
-	err = r.client.Get(context.TODO(), req.NamespacedName, cr)
-	if cr.Status.Image != cr.Spec.Image {
-		t.Error("status image mismatch")
-	}
-
 	depDep := &appsv1.Deployment{}
 	res, err = r.Reconcile(req)
 	if err != nil {
@@ -113,6 +100,10 @@ func TestSonarrController(t *testing.T) {
 	err = r.client.Get(context.TODO(), req.NamespacedName, depDep)
 	if err != nil {
 		t.Error("Deployment not created")
+	}
+	err = r.client.Get(context.TODO(), req.NamespacedName, cr)
+	if cr.Status.Image != cr.Spec.Image {
+		t.Error("status image mismatch")
 	}
 
 	depSvc := &corev1.Service{}

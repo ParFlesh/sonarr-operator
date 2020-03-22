@@ -15,7 +15,7 @@ metadata:
       ]
     capabilities: Basic Install
   name: sonarr-operator.v0.0.1
-  namespace: placeholder
+  namespace: sonarr-1
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
@@ -32,46 +32,82 @@ spec:
         name: sonarr-operator
         version: v1
       specDescriptors:
-      - description: Additional Volumes to be mounted in Sonarr container
-        displayName: Additional Volumes
-        path: additionalVolumes
-      - description: Sonarr Config Volume mounted to /config
-        displayName: Config Volume
-        path: configVolume
       - description: Stop automatic updates when hash for image tag changes
         displayName: Disable Image Updates
         path: disableUpdates
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
-      - description: 'Container image capable of running Sonarr (Default: quay.io/parflesh/sonarr:latest)'
+        - urn:alm:descriptor:com.tectonic.ui:fieldGroup:update
+      - description: Filesystem Group
+        displayName: Filesystem GroupID
+        path: fsGroup
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:fieldGroup:pod
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: 'Container image capable of running SABnzbd (Default: quay.io/parflesh/sabnzbd:latest)'
         displayName: Container Image
         path: image
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:fieldGroup:pod
       - description: Image pull secret for private container images
         displayName: Image Pull Secret
         path: imagePullSecret
         x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:fieldGroup:pod
         - urn:alm:descriptor:io.kubernetes:Secret
       - description: Priority Class Name
         displayName: Priority Class Name
         path: priorityClassName
         x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:fieldGroup:pod
         - urn:alm:descriptor:com.tectonic.ui:text
       - description: Run as Group Id
         displayName: GroupID
         path: runAsGroup
         x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:fieldGroup:pod
         - urn:alm:descriptor:com.tectonic.ui:number
       - description: Run as User Id
         displayName: User ID
         path: runAsUser
         x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:fieldGroup:pod
         - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Persistent Volume Claim
+        displayName: Persistent Volume Claim
+        path: volumes[0].claim
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:arrayFieldGroup:volumes
+        - urn:alm:descriptor:io.kubernetes:PersistentVolumeClaim
+      - description: Mount path for volume
+        displayName: Mount Path
+        path: volumes[0].mountPath
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:arrayFieldGroup:volumes
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Name
+        displayName: Name
+        path: volumes[0].name
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:arrayFieldGroup:volumes
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Volume SubPath
+        displayName: Sub Path
+        path: volumes[0].subPath
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:arrayFieldGroup:volumes
+        - urn:alm:descriptor:com.tectonic.ui:text
       - description: 'Time to wait between checking resource status (Default: 1m)'
         displayName: Watch Frequency
         path: watchFrequency
         x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:fieldGroup:update
         - urn:alm:descriptor:com.tectonic.ui:text
       statusDescriptors:
+      - displayName: Deployments
+        path: deployments
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:podStatuses
       - description: Desired Image hash for container
         displayName: Image
         path: image
@@ -90,6 +126,9 @@ spec:
       version: v1alpha1
   description: Placeholder description
   displayName: Sonarr Operator
+  icon:
+  - base64data: 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
+    mediatype: image/png
   install:
     spec:
       deployments:
