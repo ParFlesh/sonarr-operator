@@ -236,7 +236,7 @@ func (r *ReconcileSonarr) newDeployment(cr *sonarrv1alpha1.Sonarr) (*appsv1.Depl
 					Containers: []corev1.Container{
 						{
 							Name:  "sonarr",
-							Image: cr.Status.Image,
+							Image: cr.Spec.Image,
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "http",
